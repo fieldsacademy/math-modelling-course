@@ -20,10 +20,15 @@ ui <- fluidPage(
                   choices = c("bill_length_mm", "bill_depth_mm",
                               "flipper_length_mm", "body_mass_g"), selected = 1),
       selectInput("explanatory_var", label = h3("Explanatory variable"),
-                  choices = colnames(penguins), selected = 1),
-      checkboxInput("linear_fit", "Add linear regression fit")
+                  choices = c("bill_depth_mm","bill_length_mm",
+                              "flipper_length_mm", "body_mass_g"), selected = 1),
+      checkboxInput("linear_fit", "Add linear regression fit"),
+      conditionalPanel("input.linear_fit",
+                       selectInput(inputId = "covariate",
+                                   label = h3("Optional: group regression by"),
+                                   choices = c("none","species","island","sex"),
+                                   selected = 1))
     ),
-
     mainPanel(plotOutput("scatterplot"))
     )
   )
@@ -37,27 +42,38 @@ server <- function(input, output) {
   # scatterplot with optional linear (and other?) fits
   output$scatterplot <- renderPlot({
     penguins_mod <- drop_na(penguins)
+    
     # fit linear model
     fit <- lm(paste(input$explanatory_var, "~",input$outcome_var),
               data = penguins_mod)
-
-    if (input$linear_fit == "TRUE") {
-      if (input$explanatory_var == input$outcome_var){
-        ggplot(penguins, aes_string(x=input$explanatory_var, y=input$outcome_var)) +
-          geom_smooth(method='lm', formula= y~x, colour="black") +
-          geom_point() + theme_bw(base_size = 16) +
-          ggtitle("Perfect linear relationship: same outcome and explanatory variable!")
-      } else {
-        ggplot(penguins, aes_string(x=input$explanatory_var, y=input$outcome_var)) +
-          geom_smooth(method='lm', formula= y~x, colour="black") +
-          geom_point() + theme_bw(base_size = 16) +
-          ggtitle(paste0("Linear model: y = ",round(coef(fit)[2],4),
-                         "x + ", round(coef(fit)[1],4)))
-      }
-    } else {
-      ggplot(penguins, aes_string(x=input$explanatory_var, y=input$outcome_var)) +
-        geom_point() + theme_bw(base_size = 16)
-    }
+    
+    if (input$explanatory_var == input$outcome_var){
+      ggplot(penguins_mod, aes_string(x=input$explanatory_var, y=input$outcome_var)) +
+        geom_point() + theme_bw(base_size = 16) +
+        ggtitle("Same outcome and explanatory variable!")
+    } else{
+      if (input$linear_fit == "TRUE") {
+        if (input$covariate != "none"){
+          ggplot(penguins_mod, aes_string(x=input$explanatory_var,
+                                          y=input$outcome_var,
+                                          colour=input$covariate)) +
+            geom_smooth(method='lm', formula= y~x) +
+            geom_point() + theme_bw(base_size = 16) +
+            ggpubr::stat_regline_equation(aes(label = ..eq.label..),
+                                          size = 8,
+                                          show.legend = FALSE)
+          
+        } else{
+          ggplot(penguins_mod, aes_string(x=input$explanatory_var,
+                                          y=input$outcome_var)) +
+            geom_smooth(method='lm', formula= y~x, colour = "black") +
+            geom_point() + theme_bw(base_size = 16) +
+            ggpubr::stat_regline_equation(aes(label = ..eq.label..),
+                                          size = 8)
+        }} else {
+        ggplot(penguins_mod, aes_string(x=input$explanatory_var, y=input$outcome_var)) +
+          geom_point() + theme_bw(base_size = 16)
+      }}
   }, height=400)
 
 }

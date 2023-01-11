@@ -1,4 +1,4 @@
-# Simple Shiny example
+# Simple Shiny app for Palmer Penguins data
 # author: Emma Kroell
 # References:
 # Paul C. Bauer, Applied Data Visualization (with R), Chapter 11: Interactive
@@ -16,7 +16,7 @@ ui <- fluidPage(
   titlePanel("Simple Linear Regression with Palmer Penguins"),
   sidebarLayout(
     sidebarPanel(
-      selectInput("outcome_var", label = h3("Outcome variable"),
+      selectInput("outcome_var", label = h3("Response variable"),
                   choices = c("bill_length_mm", "bill_depth_mm",
                               "flipper_length_mm", "body_mass_g"), selected = 1),
       selectInput("explanatory_var", label = h3("Explanatory variable"),
@@ -27,7 +27,12 @@ ui <- fluidPage(
                        selectInput(inputId = "covariate",
                                    label = h3("Optional: group regression by"),
                                    choices = c("none","species","island","sex"),
-                                   selected = 1))
+                                   selected = 1)),
+      hr(),
+      HTML("This app allows you to fit a linear regression to the"),
+      tags$a(href = "https://allisonhorst.github.io/palmerpenguins/","Palmer Penguins data set"),
+      HTML(". You can specify the reponse and explanatory variables. 
+           You can also add a categorical variable such as sex or species as a covariate.")
     ),
     mainPanel(plotOutput("scatterplot"))
     )
@@ -56,7 +61,8 @@ server <- function(input, output) {
         if (input$covariate != "none"){
           ggplot(penguins_mod, aes_string(x=input$explanatory_var,
                                           y=input$outcome_var,
-                                          colour=input$covariate)) +
+                                          colour=input$covariate,
+                                          fill=input$covariate)) +
             geom_smooth(method='lm', formula= y~x) +
             geom_point() + theme_bw(base_size = 16) +
             ggpubr::stat_regline_equation(aes(label = ..eq.label..),
